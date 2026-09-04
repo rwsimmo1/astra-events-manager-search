@@ -164,11 +164,15 @@ function rws_exclude_past_events_from_search( $query ) {
         return;
     }
 
-    $today = current_time( 'Y-m-d' );
+	$today = current_time( 'Y-m-d' );
 
-    $meta_query = (array) $query->get( 'meta_query' );
+	$meta_query = $query->get( 'meta_query' );
 
-    $meta_query[] = array(
+	if ( empty( $meta_query ) || ! is_array( $meta_query ) ) {
+		$meta_query = array();
+	}
+
+	$event_filter = array(
         'relation' => 'OR',
 
         // Keep non-Events Manager posts/pages.
@@ -185,6 +189,16 @@ function rws_exclude_past_events_from_search( $query ) {
             'type'    => 'DATE',
         ),
     );
+
+	// Avoid adding the same filter multiple times if this callback runs twice.
+	foreach ( $meta_query as $existing_clause ) {
+		if ( is_array( $existing_clause ) && $existing_clause === $event_filter ) {
+			$query->set( 'meta_query', $meta_query );
+			return;
+		}
+	}
+
+	$meta_query[] = $event_filter;
 
     $query->set( 'meta_query', $meta_query );
 }
